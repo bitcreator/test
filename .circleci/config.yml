@@ -1,0 +1,30 @@
+version: 2
+jobs:
+    build:
+        docker:
+            -   image: circleci/php:7.4-node-browsers
+        steps:
+            - checkout
+            -   run: sudo apt update
+            -   run: sudo docker-php-ext-install zip
+            -   restore_cache:
+                    keys:
+                        - v1-dependencies-{{ checksum "composer.json" }}
+                        - v1-dependencies-
+            - run:
+                  name: "Create environment file"
+                  command: mv .env.test .env
+            - run:
+                  name: "Install dependencies"
+                  command: composer install -n --prefer-dist
+            - save_cache:
+                  key: v1-dependencies-{{ checksum "composer.json" }}
+                  paths:
+                      - ./vendor
+            - run:
+                  name: "Run web server"
+                  command: php bin/console server:dump
+                  background: true
+            - run:
+                  name: "Run Behat test"
+                  command: vendor/bin/behat
